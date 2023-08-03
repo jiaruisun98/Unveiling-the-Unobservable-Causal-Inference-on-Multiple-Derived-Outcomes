@@ -6,7 +6,7 @@ The data used in this article are publicly available by request, following the p
 
 `http://fcon_1000.projects.nitrc.org/indi/abide/abide_I.html'. 
 
-Open the website -> find `NYU Langone Medical Center' -> Downloads -> `Phenotypic File'.
+Open the website -> find "NYU Langone Medical Center" -> Downloads -> "Phenotypic File".
 
 3.In the article, we use the preprocessed image data. 
 
