@@ -82,21 +82,16 @@ In RealCaseStudy.R, 'Connection_diff1' provides the Nerwork in Table1 and Figure
 First load in the functions in Functions.R. 
 
 Then use the code in Simulation.R  to reproduce the simulation results for the subject level correlations. In Simulation.R,
-
 'Simulation_block_proposed' is the result of proposed method under block diagonal setting, 
-
 'Simulation_block_BH' is the result of BH method under block diagonal setting, 
-
 'Simulation_off_proposed' is the result of proposed method under off diagonal setting, 
-
 'Simulation_off_BH' is the result of BH method under off diagonal setting. 
-
 The simulation results are further organized in simulation-result.xlsx, which is provided in `output` forder to produce Figure 1 and Figure 2.
 
 Next, use the code in simulation_regression.R to reproduce the simulation results for the regression coeffcients. In Simulation_regression.R, 'result' provides the analysis result used to construct Figure S1. The simulation results are further organized in simulation-result.xlsx to produce Figure S1.
 
 Finally, use plot.R and the simulation results in simulation-result.xlsx to produce the figures. 
-In plot.R, `plot_block' produces Figure 1, `plot_off' produces Figure 2, and `plot_lasso' produces Figure S1.
+In plot.R, 'plot_block' produces Figure 1, 'plot_off' produces Figure 2, and 'plot_lasso' produces Figure S1.
 
 
 
