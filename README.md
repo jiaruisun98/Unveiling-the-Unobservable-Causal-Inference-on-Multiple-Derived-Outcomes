@@ -69,22 +69,22 @@ First load in the COV_NYU.xlsx and every NYU_XXXXXXX_rois_aal.1D documents
 
 Then use the code in RealCaseStudy.R to reproduce the analysis results. 
 
-In RealCaseStudy.R, `Connection_diff1' provides the Nerwork in Table1 and Figure S2, 
-`Tau_sig' provides the `Estimated Effect' in Table1, `CI_low' and `CI_high' provides 
-the 95% CI in Table1, `Ave-trt' and `Ace-cl' provide Ave-trt and Ace-cl in Table1.
+In RealCaseStudy.R, 'Connection_diff1' provides the Nerwork in Table1 and Figure S2, 
+'Tau_sig' provides the 'Estimated Effect' in Table1, 'CI_low' and 'CI_high' provides 
+the 95% CI in Table1, 'Ave-trt' and 'Ace-cl' provide Ave-trt and Ace-cl in Table1.
 
 #### To reproduce the Simulation results: 
 
 First load in the functions in Functions.R. 
 
 Then use the code in Simulation.R  to reproduce the simulation results for the subject level correlations. In Simulation.R,
-`Simulation_block_proposed' is the result of proposed method under block diagonal setting, 
-`Simulation_block_BH' is the result of BH method under block diagonal setting, 
-`Simulation_off_proposed' is the result of proposed method under off diagonal setting, 
-`Simulation_off_BH' is the result of BH method under off diagonal setting. 
+'Simulation_block_proposed' is the result of proposed method under block diagonal setting, 
+'Simulation_block_BH' is the result of BH method under block diagonal setting, 
+'Simulation_off_proposed' is the result of proposed method under off diagonal setting, 
+'Simulation_off_BH' is the result of BH method under off diagonal setting. 
 The simulation results are further organized in simulation-result.xlsx to produce Figure 1 and Figure 2.
 
-Next, use the code in simulation_regression.R to reproduce the simulation results for the regression coeffcients. In Simulation_regression.R, `result' provides the analysis result used to construct Figure S1. The simulation results are further organized in simulation-result.xlsx to produce Figure S1.
+Next, use the code in simulation_regression.R to reproduce the simulation results for the regression coeffcients. In Simulation_regression.R, 'result' provides the analysis result used to construct Figure S1. The simulation results are further organized in simulation-result.xlsx to produce Figure S1.
 
 Finally, use plot.R and the simulation results in simulation-result.xlsx to produce the figures. 
 In plot.R, `plot_block' produces Figure 1, `plot_off' produces Figure 2, and `plot_lasso' produces Figure S1.
