@@ -18,7 +18,7 @@ and FIQ are also used in the data analysis. The code used to analyze the data is
 
 The data are publicly available by request. 
 
-The process to request the data is shown in readme file under the `data' folder.
+The process to request the data is shown in readme file under the 'data' folder.
 
 
 ## Code
