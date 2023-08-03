@@ -1,162 +1,76 @@
-JASA Reproducibility Materials Template
+Unveiling the Unobservable Causal Inference on Multiple Derived Outcomes
 ================
 
-This GitHub repository contains a suggested template structure for authors who
-submit to JASA (either Applications and Case Studies or Theory and
-Methods) to include materials to reproduce analyses, visualizations, and
-tables.
-
-We provide this template as a default structure that we (the JASA Associate Editors of Reproducibility) think could be
-useful for many projects, either as is or with modifications by authors.
-However, the template is intended to be helpful and is by no means
-required of authors. Authors should consult [our reproducibility
-guide](https://jasa-acs.github.io/repro-guide) for details on what is
-required of reproducibility materials submitted with JASA revisions (not
-required upon initial submission).
-
-## Why is a template repository useful?
-
-The purpose of this template repository is to provide a mechanism for
-author(s) to share their materials via a Git repository, hosted on a
-cloud-based repository manager such as GitHub or GitLab. This provides
-the following advantages for author(s):
-
-1.  Analyses (including code, narrative text, output, plots, etc) can be
-    version controlled (or branched or forked) allowing original
-    author(s) to continue to develop the analyses or other data analysts
-    to build off the analyses. Also iterations and changes to the
-    analysis are then available via the Git commit history.
-2.  Materials are easily available to other researchers.
-3.  Preparing a repository also makes it easy for the JASA Associate
-    Editors for Reproducibility to copy the materials for a JASA article
-    into the JASA GitHub repository where the final paper products are stored
-    after publication (https://github.com/jasa-acs).
-
-## How does the process work?
-
-### Step 1
-
-Author(s) can create a public GitHub repository in their own GitHub account
-by using this template repository. This template contains a basic 
-skeletal structure to help authors structure their code and analyses for their 
-JASA publication. Creating a repository with the template can be done in the following way: 
-
-Click on the "Use this template" button for [this GitHub template repository](https://github.com/jasa-acs/repro-template). (You'll need to be signed in to a GitHub account in order to see the button.)
-
-![Click template button](https://docs.github.com/assets/cb-36544/images/help/repository/use-this-template-button.png)
-
-From there, author(s) can [follow these instructions](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template). However do not optionally select "**Include all branches**" as you do not need this for your own projects. 
 
 
-### Step 2
+## Data
 
-The author(s) can then directly edit (or replace) the manuscript template files in their own GitHub repository. Author(s) can also add their own data, code, and other files as needed. 
+We use the fMRI data publicly available at the Autism Brain Imaging Data Exchange I.
+79 ASD patients from the New York University Langone Medical Center are used in the Case Study. 
+For each patient, there are 175 scans of brain overtime. A brain scan at one time point 
+contains the brain signals of 116 regions-of-interests (ROI) extracted according to the 
+automated anatomical labeling atlas. Covariates information including age, sex, handedness 
+and FIQ are also used in the data analysis. The code used to analyze the data is provided.
 
-For guidance on getting started with git, we recommend the [Happy with git r](https://happygitwithr.com) tutorials.
+## Reproducibility workflow
 
-**Importantly, the authors should provide an overview of how to carry
-out the analyses presented in their manuscript in the `README.md` of their
-repository, replacing the content in this file.** This overview would
-generally refer to scripts/code files that execute the analyses and are
-placed either in the main directory or the `/code` subdirectory. The
-*Workflow* section of the ACC form should refer to this README.md as
-containing the instructions for how to reproduce the analyses.
+### Related Files 
 
-### Step 3
+1.Functions.R is the code of the functions for simulation, including the function for data
+generating, function for proposed method, function for BH procedure.
 
-Author(s) use `git commit` to track changes over time and use `git push`
-to push changes to a repository on the author(s) personal GitHub
-account.
+2.Simulation.R is the code for simulation of the proposed method on correlation. In Simulation.R, 
+`Simulation_block_proposed` is the result of proposed method under block diagonal setting, 
+`Simulation_block_BH` is the result of BH method under block diagonal setting, 
+`Simulation_off_proposed` is the result of proposed method under off diagonal setting, 
+`Simulation_off_BH` is the result of BH method under off diagonal setting. The simulation results 
+are further organized in `simulation-result.xlsx` to produce Figure 1 and Figure 2.
 
-### Step 4
+3.Simulation_regression.R is the code for simulation of the proposed method on regression parameters 
+of lasso and debiased-lasso. In Simulation_regression.R,`result' provides the analysis result used to
+construct Figure S1. The simulation results are further organized in `simulation-result.xlsx` to produce Figure S1.
 
-Author(s) submit a link to their GitHub repository as part of the [JASA
-Reproducibility review process](https://jasa-acs.github.io/repro-guide/),
-required upon submission of an invited revision.
+4.Simulation-result.xlsx is our simulation results which are presented in the article.
 
-### Step 5
+5.plot.R uses simulation results in Simulation.R and Simulation_regression.R to produce Figure 1, 2 and S1.
+In plot.R, `plot_block' produces Figure 1, `plot_off' produces Figure 2, and `plot_lasso' produces Figure S1.
 
-JASA Associate Editors for Reproducibility will review the materials in
-the GitHub repository of the authors and submit a
-reproducibility review as part of the standard JASA review process.
-Authors have the opportunity to respond to the review by making changes
-and pushing their changes to their personal GitHub repository.
+6.RealCaseStudy.R is the code for application. This code produces table 1 and the brain connection in 
+Figure S2. In RealCaseStudy.R, `Connection_diff1'provides the Nerwork in `Table1' and `Figure S2', 
+`Tau_sig'provides the `Estimated Effect` in `Table1`, `CI_low' and `CI_high' provides the 95% CI in 
+`Table1`, `Ave-trt' and `Ace-cl' provide Ave-trt and Ace-cl in `Table1`.
 
-### Step 6
+7.data_dictionary.txt tells the meaning of the data used in this article.
 
-Once the manuscript is accepted, the materials in the author(s) personal
-GitHub repository will be copied to the [JASA repository](https://github.com/jasa-acs).
+### Version of primary software used
 
-## Reproducibility materials file structure
+R version 4.1.3
 
-This template provides a suggested file structure for a JASA submission, but authors are free
-to modify this structure.
+### R packages needed
 
-The suggested components are as follows. Directories in the submission may have subdirectories to
-further organize the materials.
+openxlsx_4.2.4
+MASS_7.3-55
+iterators_1.0.14
+doParallel_1.0.17
+foreach_1.5.2  
+glmnet_4.1-4
+doRNG_1.8.2  
 
-1.  A `README.md` file - This file gives a short description of the
-    paper and an overview of how to carry out the analyses presented in their manuscript.
-2.  A `manuscript` directory - This directory will generally hold the source files
-    (often LaTeX or Rmd) for the manuscript and any files directly related to the
-    generation of the manuscript, including figure files.
-3.  A `data` directory - This directory will generally hold the real data files 
-    (or facsimile versions of them in place of confidential data) and simulated data files.
-    See `data/README.md` for more details. 
-4.  A `code` directory - This directory will generally hold 
-    source code files that contain the core code to implement the method and various utility/auxiliary functions.
-5.  An `output` directory - This directory will generally hold objects derived
-    from computations, including results of simulations or real data analyses. See `output/README.md` for more details.
+### Instructions
 
-## Guidance on the use of reproducible environments
+#### To reproduce the Case Study result:
 
-Submissions may include the use of reproducible environments capturing
-state of a machine generating manuscript artifacts and even the
-manuscript itself. Here we discuss two types of reproducible
-environments and their use. Both virtual and package environments may be
-put in the `code` directory.
+First load in the COV_NYU.xlsx and every NYU_XXXXXXX_rois_aal.1D documents
+(this step is also inlcuded in RealCaseStudy.R) and then use the code in 
+RealCaseStudy.R to reproduce the analysis results.
 
-### Package environments
+#### To reproduce the Simulation results: 
 
-Package environments capture the set of packages used by a programming
-language needed to generate output. The R programming language has
-`renv`, `switchr` and others to accomplish this, Python has `venv`,
-`conda` and others, and Julia has native support (through the `Pkg`
-package). When submitting these types of environments, the following are
-suggested.
+First load in the functions in Functions.R. Then use the code in Simulation.R 
+to reproduce the simulation results for the subject level correlations. Next, 
+use the code in simulation_regression.R to reproduce the simulation results 
+for the regression coeffcients. Finally, use plot.R and the simulation results 
+to produce the figures.
 
-1.  Clearly indicate (in the overall `README.md`) the language(s) used (including version) 
-    and the package environment tool used (e.g., `renv`, `conda`).
-2.  Use a single package environment for all reproducible content.
-3.  Prefer packages from package archives (CRAN, Bioconductor,
-    RForge.net for example).
-4.  If you use packages from a code repository (GitHub, GitLab, etc.)
-    then use a release version if possible, or indicate the commit used. You could also consider
-    forking the repository and providing a release.
 
-### Virtual environments
 
-Virtual environments such as Docker and Singlarity capture
-the entire computing environment in which computations were performed.
-In general, they are a more robust solution, capable of taking a
-“snapshot” of a machine, including any system-level utilities and
-external libraries needed to perform your computations. They have the
-advantage that reproducing materials means running the virtual
-environment, rather than recreating the programming language environment.
-If using a virtual environment, we ask that 
-you provide a definition file (e.g., a Dockerfile) or (perhaps better)
-a link to an image in a standard online registry, such as DockerHub.
-
-## References
-
-Gentleman, Robert, and Duncan Temple Lang. “[Statistical Analyses and
-Reproducible
-Research](http://biostats.bepress.com/cgi/viewcontent.cgi?article=1001&context=bioconductor).”
-(2004).
-
-Gentleman, Robert. “[Reproducible research: a bioinformatics case
-study](https://www.degruyter.com/document/doi/10.2202/1544-6115.1034/html).”
-Statistical applications in genetics and molecular biology 4.1 (2005).
-
-Marwick, Ben, and Bryan, Jennifer, and Attali, Dean, and Hollister,
-Jeffrey W. [rrrpkg Github Page](https://github.com/ropensci/rrrpkg).
