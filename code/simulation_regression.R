@@ -31,10 +31,18 @@ ARcov = function(p, rho){
 }
 
 
-#function for data sampling; block diagonal structure
-#meaning of parameters can be seen in the article
-#Raw0 is the parameter for correlation structure, raw is strength of time dependence
-#n is the number of subjects, p the dimension of covariance matrix, m the length of time series
+##function for data generating: block diagonal setting
+##the nonzero treatment effects appear in the blocks of size s0 along the main diagonal of the correlation matrice
+
+##input
+##detailed meaning of these parameters can be found in the article
+##p is dimension of brain regions; Raw0 is the parameter for correlation structure; q is dimension for covariates
+##Beta is the true logistic model parameter; gamma decides the relation between the treatment effect and covariates
+##n subject number; m time series length; s0 is the size of `block'`;  raw is strength of time dependence
+
+##output: a list of W,D,X
+##W: simulated covariates; X: simulated response; D: simulated treatment assignment
+
 
 Sample_1<-function(p,Raw0,q,Beta,gamma,n,m,s0,raw){
   Sigma0 = ARcov(p, Raw0)
@@ -84,6 +92,21 @@ Sample_1<-function(p,Raw0,q,Beta,gamma,n,m,s0,raw){
 
 
 ##function of the proposed procedure on regression parameters
+##This function uses the proposed step-down procedure on regression parameters and 
+##calculate tpr, fpr and fdp under block diagonal setting
+
+##input 
+##W the covariates; X the observed response; D the treatment
+##p dimension of brain regions; n number of subjects; m number of repeated observation
+##q dimension of covariates; B bootstrap sampling size; aph significant level ; c augmentation proportion
+##s0 is the block size of the block diagonal setting
+
+##output 
+##p_true_rate: true positive rate
+##p_false_rate: false positive rate
+##fdr: false positive proportion
+
+
 
 node_regression_estimate_diag<-function(W,X,D,p,n,m,q,B,aph,c,s0){
   
@@ -133,20 +156,25 @@ node_regression_estimate_diag<-function(W,X,D,p,n,m,q,B,aph,c,s0){
   Prob.estimate = as.vector(exp(W %*% beta.estimate) / (1 + exp(W %*% beta.estimate)))
   
   #tau
-  tau.estimate = matrix(0, p, p)
+  #tau.estimate = matrix(0, p, p)
   weight = D / Prob.estimate - (1 - D) / (1 - Prob.estimate)
-  for (i in 1 : n){
-    tau.estimate = tau.estimate + Y.estimate[, , i] * weight[i]
-  }
-  tau.estimate = tau.estimate / n
+  #for (i in 1 : n){
+  #  tau.estimate = tau.estimate + Y.estimate[, , i] * weight[i]
+  #}
+  #tau.estimate = tau.estimate / n
+  
+  tau.estimate<-apply(Y.estimate* weight[slice.index(Y.estimate, 3)],c(1,2),mean)
+  
   
   #tau_d
-  tau.estimate_d = matrix(0, p, p)
+  #tau.estimate_d = matrix(0, p, p)
   weight = D / Prob.estimate - (1 - D) / (1 - Prob.estimate)
-  for (i in 1 : n){
-    tau.estimate_d = tau.estimate_d + Y.estimate_d[, , i] * weight[i]
-  }
-  tau.estimate_d = tau.estimate_d / n
+  #for (i in 1 : n){
+  #  tau.estimate_d = tau.estimate_d + Y.estimate_d[, , i] * weight[i]
+  #}
+  #tau.estimate_d = tau.estimate_d / n
+  
+  tau.estimate_d<-apply(Y.estimate_d* weight[slice.index(Y.estimate_d, 3)],c(1,2),mean)
   
   
   #estimation for eta, the influence function and variance
@@ -173,12 +201,14 @@ node_regression_estimate_diag<-function(W,X,D,p,n,m,q,B,aph,c,s0){
     }
   }
   
-  theta.var = matrix(0, p, p)
-  for (j1 in 1 : p){
-    for (j2 in 1 : p){
-      theta.var[j1, j2] = mean((eta[j1, j2, ] - tau.estimate[j1, j2])^2)
-    }
-  }
+  #theta.var = matrix(0, p, p)
+  #for (j1 in 1 : p){
+  #  for (j2 in 1 : p){
+  #    theta.var[j1, j2] = mean((eta[j1, j2, ] - tau.estimate[j1, j2])^2)
+  #  }
+  #}
+  
+  theta.var<-apply( (eta-tau.estimate[slice.index(eta,c(1,2))])^2,c(1,2),mean)
   
   
   #estimation for eta_d, the influence function and variance
@@ -205,13 +235,14 @@ node_regression_estimate_diag<-function(W,X,D,p,n,m,q,B,aph,c,s0){
     }
   }
   
-  theta.var_d = matrix(0, p, p)
-  for (j1 in 1 : p){
-    for (j2 in 1 : p){
-      theta.var_d[j1, j2] = mean((eta_d[j1, j2, ] - tau.estimate_d[j1, j2])^2)
-    }
-  }
+  #theta.var_d = matrix(0, p, p)
+  #for (j1 in 1 : p){
+  #  for (j2 in 1 : p){
+  #    theta.var_d[j1, j2] = mean((eta_d[j1, j2, ] - tau.estimate_d[j1, j2])^2)
+  #  }
+  #}
   
+  theta.var_d<-apply( (eta_d-tau.estimate_d[slice.index(eta_d,c(1,2))])^2,c(1,2),mean)
   
   
   #standardized treatment effect
@@ -231,10 +262,14 @@ node_regression_estimate_diag<-function(W,X,D,p,n,m,q,B,aph,c,s0){
   z = array(0, c(p, p, B))
   for(b in 1 : B){
     g = rnorm(n)
-    temp = 0
-    for (i in 1 : n){
-      temp = temp + g[i] * (eta[, , i] - tau.estimate)
-    }
+    
+    #temp = 0
+    #for (i in 1 : n){
+    #  temp = temp + g[i] * (eta[, , i] - tau.estimate)
+    #}
+    
+    temp =apply( (eta-tau.estimate[slice.index(eta,c(1,2))])*g[slice.index(eta, 3)],c(1,2) , sum)
+    
     z[, , b] = theta.var^(-0.5) * temp / sqrt(n) * Index
     
     id_exclude_ = cbind(id_exclude,rep(b,nrow(id_exclude)))
@@ -290,10 +325,13 @@ node_regression_estimate_diag<-function(W,X,D,p,n,m,q,B,aph,c,s0){
   z_d = array(0, c(p, p, B))
   for(b in 1 : B){
     g = rnorm(n)
-    temp = 0
-    for (i in 1 : n){
-      temp = temp + g[i] * (eta_d[, , i] - tau.estimate_d)
-    }
+    #temp = 0
+    #for (i in 1 : n){
+    #  temp = temp + g[i] * (eta_d[, , i] - tau.estimate_d)
+    #}
+    
+    temp =apply( (eta_d-tau.estimate_d[slice.index(eta_d,c(1,2))])*g[slice.index(eta_d, 3)],c(1,2) , sum)
+    
     z_d[, , b] = theta.var_d^(-0.5) * temp / sqrt(n) * Index
     
     id_exclude_ = cbind(id_exclude_d,rep(b,nrow(id_exclude_d)))
