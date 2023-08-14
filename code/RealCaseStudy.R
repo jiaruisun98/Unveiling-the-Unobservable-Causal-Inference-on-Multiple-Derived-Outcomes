@@ -8,10 +8,10 @@ source("Functions.R")
 #CI_low and CI_high provides the 95% CI in `Table1`
 #Ave-trt and Ace-cl provide Ave-trt and Ace-cl in `Table1`
 
+##read in brian region response data
 data <- data.frame()
 data <- array(data=0,dim=c(175,116,79))
 #79 subjects,116ROIs,175 time points
-#read time series data.
 
 for(i in 50952:50962){
   path <- paste0("NYU_00",i,"_rois_aal",".1D")
@@ -42,11 +42,12 @@ for(i in 51032:51035){
 
 X<-data
 
-#read covariance
+#read in covariance
 Covariance<-read.csv("phenotypic_NYU.csv")
 #Covariance<-read.xlsx("COV_NYU.xlsx")
 Covariance<-Covariance[which(Covariance[,"DX_GROUP"]==1),]
 D<-Covariance[,"CURRENT_MED_STATUS"]
+
 
 #deleting subjects with missing data
 W<-Covariance[,c(5,6,8,9)]
@@ -58,8 +59,15 @@ W<-W[which(W[,3]!=-9999),]
 X<-X[,,-c(66,76)]
 W<-W[-c(66,76),]
 D<-D[-c(66,76)]
+ID1=which(D==1)
+ID0=which(D==0)
+
+##data:
+##W the covariates; X the observed response; D the treatment
 
 #parameters
+##p dimension of brain regions; n number of subjects; m number of repeated observation
+##q dimension of covariates; B bootstrap sampling size; aph significant level ; c augmentation proportion
 p<-116
 n<-76
 m<-175
@@ -68,53 +76,40 @@ B<-1000
 aph<-0.05
 c<-0.1
 
-
 set.seed(12345678)
 
+#############################
+##Treatment effect estimation and multiple testing procedure of proposed method
+#############################
 
+##causal effect estimation 
+#estimate correlation matrix
+Y.estimate_<-apply(X,3,cor,simplify = FALSE)
+Y.estimate<-array(unlist(Y.estimate_),dim=c(p,p,n))
 
-##Estimating and inference procedure
-#causal effect estimation 
-
-Y.estimate = array(0, c(p, p, n))
-for (i in 1 : n){
-  Y.estimate[, , i] = cor(X[, , i])
-}
+#logistic regression for propensity score
 logistReg = glm(D ~ W + 0, family = binomial)
 beta.estimate = logistReg$coefficient
 Prob.estimate = as.vector(exp(W %*% beta.estimate) / (1 + exp(W %*% beta.estimate)))
-
-tau.estimate = matrix(0, p, p)
 weight = D / Prob.estimate - (1 - D) / (1 - Prob.estimate)
 
-ID1=which(D==1)
-ID0=which(D==0)
-tau.estimate1 = matrix(0, p, p)
-tau.estimate0 = matrix(0, p, p)
- for (i in 1 : length(ID1)){
-  tau.estimate1 = tau.estimate1 + Y.estimate[, , ID1[i]] * weight[ID1[i]]
-}
-tau.estimate1 = tau.estimate1 / n
+#IPW, treatment effect estimation
+tau.estimate<-apply(Y.estimate* weight[slice.index(Y.estimate, 3)],c(1,2),mean)
 
-for (i in 1 : length(ID0)){
-  tau.estimate0 = tau.estimate0 + Y.estimate[, , ID0[i]] * weight[ID0[i]]
-}
-tau.estimate0 = tau.estimate0 / n
-
-for (i in 1 : n){
-  tau.estimate = tau.estimate + Y.estimate[, , i] * weight[i]
-}
-tau.estimate = tau.estimate / n
+weight1<-weight[ID1]
+tau.estimate1<-apply(Y.estimate[, , ID1]* weight1[slice.index(Y.estimate[, , ID1], 3)],c(1,2),sum)/n
+weight0<-weight[ID0]
+tau.estimate0<-apply(Y.estimate[, , ID0]* weight0[slice.index(Y.estimate[, , ID0], 3)],c(1,2),sum)/n
 
 #estimation for eta, the influence function and variance
-
 Fisher.Information = 0
 for (i in 1 : n){
-  Fisher.Information = Fisher.Information + Prob.estimate[i] * (1 - Prob.estimate[i]) * W[i, ] %*% t(W[i, ])
-}
+  Fisher.Information = Fisher.Information + Prob.estimate[i] * (1 - Prob.estimate[i]) * W[i, ] %*% t(W[i, ])}
+
 Fisher.Information = Fisher.Information / n
 Theta = solve(Fisher.Information)
 weight.H = D * (1 - Prob.estimate) / Prob.estimate + (1 - D) * Prob.estimate / (1 - Prob.estimate)
+
 H = array(0, c(p, p, q))
 for (j1 in 1 : p){
   for (j2 in 1 : p){
@@ -131,39 +126,28 @@ for (j1 in 1 : p){
   }
 }
 
-theta.var = matrix(0, p, p)
-for (j1 in 1 : p){
-  for (j2 in 1 : p){
-    theta.var[j1, j2] = mean((eta[j1, j2, ] - tau.estimate[j1, j2])^2)
-  }
-}
+theta.var<-apply( (eta-tau.estimate[slice.index(eta,c(1,2))])^2,c(1,2),mean)
+
 
 #standardized treatment effect
-
 Tstat = sqrt(n) * abs(tau.estimate) * theta.var^(-0.5)
 
-Index = matrix(1, p, p)
-for (j in 1 : p){
-  Index[j, j] = 0
-}
-
+#set variance term, the diagonal to be zero
+Index = matrix(1, p, p)-diag(1,p,p)
 Tstat0 = Tstat * Index
 
 #Proposed multiple testing procedure
+result<-matrix(0,p,p)
 
 z = array(0, c(p, p, B))
 for(b in 1 : B){
   g = rnorm(n)
-  temp = 0
-  for (i in 1 : n){
-    temp = temp + g[i] * (eta[, , i] - tau.estimate)
-  }
+  temp =apply( (eta-tau.estimate[slice.index(eta,c(1,2))])*g[slice.index(eta, 3)],c(1,2) , sum)
   z[, , b] = theta.var^(-0.5) * temp / sqrt(n) * Index
 }
-
-result<-matrix(0,p,p)
 z.initial = z
 Tstat.initial = Tstat0
+
 repeat{
   Tstat.max = max(abs(Tstat.initial))
   index.temp = which(abs(Tstat0) == Tstat.max, arr.ind = TRUE)
@@ -177,6 +161,7 @@ repeat{
   }
 }
 
+#Augmentation
 size<-sum(result)/2
 num_add<-floor(c*size/(1-c))
 if(num_add>=1){
@@ -203,13 +188,13 @@ CI_high=Tau_sig+sqrt(theta_sig)/sqrt(n)*qnorm(0.975,0,1)
 Ave_trt<-tau.estimate1[Connection_diff1]
 Ave_cl<-tau.estimate0[Connection_diff1]
 
+###################
+##Non-causal method: two-sample t-test directly on the subject level sample correlation
+###################
 
-
-
-##########Non-Causal Method############
-
-
-
+#parameters
+##p dimension of brain regions; n number of subjects; m number of repeated observation
+##q dimension of covariates; B bootstrap sampling size; aph significant level ; c augmentation proportion
 p<-116
 n<-76
 m<-175
@@ -219,66 +204,42 @@ aph<-0.05
 c<-0.1
 
 
-
 ##Correlation estimation
-Y.estimate = array(0, c(p, p, n))
-for (i in 1 : n){
-  Y.estimate[, , i] = cor(X[, , i])
-}
+Y.estimate_<-apply(X,3,cor,simplify = FALSE)
+Y.estimate<-array(unlist(Y.estimate_),dim=c(p,p,n))
+
 Y.estimate.y = Y.estimate[,,which(D==1)]
 Y.estimate.n = Y.estimate[,,which(D==0)]
-
 
 m1 = sum(D==1)
 m2 = sum(D==0)
 
 ##Difference between treatment and control
-Difference = array(0,c(p,p))
-for(i in 1:m1){
-  Difference = Difference + 1/sqrt(m1)*Y.estimate.y[,,i]
-}
-for(i in 1:m2){
-  Difference = Difference - sqrt(m1)/m2*Y.estimate.n[,,i]
-}
-
+Difference = apply(Y.estimate.y,c(1,2),sum)*1/sqrt(m1)-
+  apply(Y.estimate.n,c(1,2),sum)*sqrt(m1)/m2
 Difference = abs(Difference)
 
-Y.estimate.y.average = array(0,c(p,p))
-Y.estimate.n.average = array(0,c(p,p))
+Y.estimate.y.average = apply(Y.estimate.y,c(1,2),mean)
+Y.estimate.n.average = apply(Y.estimate.n,c(1,2),mean)
 
-for(i in 1:m1){
-  Y.estimate.y.average = Y.estimate.y.average + Y.estimate.y[,,i]
-}
-Y.estimate.y.average = Y.estimate.y.average/m1
-
-for(i in 1:m2){
-  Y.estimate.n.average = Y.estimate.n.average + Y.estimate.n[,,i]
-}
-Y.estimate.n.average = Y.estimate.n.average/m2
-
-
-Index = matrix(1, p, p)
-for (j in 1 : p){
-  Index[j, j] = 0
-}
-
+Index = matrix(1, p, p)-diag(1,p,p)
 Difference0 = Difference * Index
 
 ##proposed procedure 
 z = array(0, c(p, p, B))
 for(b in 1 : B){
   g1 = rnorm(m1)
-  temp = 0
-  for (i in 1 : m1){
-    temp = temp + g1[i] * (Y.estimate.y[, , i] - Y.estimate.y.average)/sqrt(m1)
-  }
+  #temp = 0
+  #for (i in 1 : m1){
+  #  temp = temp + g1[i] * (Y.estimate.y[, , i] - Y.estimate.y.average)/sqrt(m1)
+  #}
   g2 = rnorm(m2)
-  for (i in 1 : m2){
-    temp = temp + g2[i] * (Y.estimate.n[, , i] - Y.estimate.n.average)*sqrt(m1)/m2
-  }
-  
-  
-  
+  #for (i in 1 : m2){
+  #  temp = temp + g2[i] * (Y.estimate.n[, , i] - Y.estimate.n.average)*sqrt(m1)/m2
+  #}
+  temp =apply( (Y.estimate.y-Y.estimate.y.average[slice.index(Y.estimate.y,c(1,2))])*g1[slice.index(Y.estimate.y, 3)],c(1,2) , sum)/sqrt(m1)-
+    apply( (Y.estimate.n-Y.estimate.n.average[slice.index(Y.estimate.n,c(1,2))])*g2[slice.index(Y.estimate.n, 3)],c(1,2) , sum)*sqrt(m1)/m2
+
   z[, , b] = temp * Index
 }
 
@@ -302,6 +263,8 @@ repeat{
   #  cat("Max Stat = ", Tstat.max, "quantile = ", z.max.quan, "\n")
 }
 
+#Agumentation
+
 size<-sum(result)/2
 num_add<-floor(c*size/(1-c))
 if(num_add>=1){
@@ -315,28 +278,27 @@ if(num_add>=1){
 
 
 result_diff2<-which(result ==1, arr.ind = TRUE)
+print(result_diff2)
+##There are no significant connections
 
+#############################################
+##Treatment effect estimation and multiple testing procedure of BH method
+#############################################
 
-####################Causal+BH Method###########################
+#estimate correlation matrix
+Y.estimate_<-apply(X,3,cor,simplify = FALSE)
+Y.estimate<-array(unlist(Y.estimate_),dim=c(p,p,n))
 
-
-Y.estimate = array(0, c(p, p, n))
-for (i in 1 : n){
-  Y.estimate[, , i] = cor(X[, , i])
-}
+#logistic regression for propensity score
 logistReg = glm(D ~ W + 0, family = binomial)
 beta.estimate = logistReg$coefficient
 Prob.estimate = as.vector(exp(W %*% beta.estimate) / (1 + exp(W %*% beta.estimate)))
 
-tau.estimate = matrix(0, p, p)
 weight = D / Prob.estimate - (1 - D) / (1 - Prob.estimate)
-for (i in 1 : n){
-  tau.estimate = tau.estimate + Y.estimate[, , i] * weight[i]
-}
-tau.estimate = tau.estimate / n
+tau.estimate<-apply(Y.estimate* weight[slice.index(Y.estimate, 3)],c(1,2),mean)
 
 
-
+#estimation for eta, the influence function and variance
 Fisher.Information = 0
 for (i in 1 : n){
   Fisher.Information = Fisher.Information + Prob.estimate[i] * (1 - Prob.estimate[i]) * W[i, ] %*% t(W[i, ])
@@ -360,12 +322,8 @@ for (j1 in 1 : p){
   }
 }
 
-theta.var = matrix(0, p, p)
-for (j1 in 1 : p){
-  for (j2 in 1 : p){
-    theta.var[j1, j2] = mean((eta[j1, j2, ] - tau.estimate[j1, j2])^2)
-  }
-}
+theta.var<-apply( (eta-tau.estimate[slice.index(eta,c(1,2))])^2,c(1,2),mean)
+
 
 
 ##Use the BH procedure instead of the proposed procedure
@@ -376,16 +334,14 @@ P=2*pnorm(Tstat,0,1,lower.tail = FALSE)
 P1=P
 for(i in 1:p){
   for(j in 1:p){
-    if(j<=i){P1[i,j]=1}
-  }
-}
+    if(j<=i){P1[i,j]=1} }}
+
 test=sort(P1)
 num=1
 while(test[num]<num*aph/(p*(p-1)/2)){
   num=num+1
 }
 num=num-1
-
 
 
 result<-matrix(0,p,p)
@@ -405,14 +361,20 @@ Connection_diff_bh<-which(Connection_bh ==1, arr.ind = TRUE)
 print(Connection_diff_bh)
 
 #CI for the causal effect for detected connections
-Tau_sig=tau.estimate[Connection_diff1]
-theta_sig=theta.var[Connection_diff1]
-CI_low=Tau_sig-sqrt(theta_sig)/sqrt(n)*qnorm(0.975,0,1)
-CI_high=Tau_sig+sqrt(theta_sig)/sqrt(n)*qnorm(0.975,0,1)
+#Tau_sig=tau.estimate[Connection_diff1]
+#theta_sig=theta.var[Connection_diff1]
+#CI_low=Tau_sig-sqrt(theta_sig)/sqrt(n)*qnorm(0.975,0,1)
+#CI_high=Tau_sig+sqrt(theta_sig)/sqrt(n)*qnorm(0.975,0,1)
 
 #Ave-trt+Ave-cl
-Ave_trt<-tau.estimate1[Connection_diff1]
-Ave_cl<-tau.estimate0[Connection_diff1]
+#Ave_trt<-tau.estimate1[Connection_diff1]
+#Ave_cl<-tau.estimate0[Connection_diff1]
+
+
+
+
+
+
 
 
 
